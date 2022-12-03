@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using url_shortener;
 
 namespace url_shortener.Models
 {
@@ -23,7 +24,7 @@ namespace url_shortener.Models
         {
             try
             {
-                using var file = File.OpenRead("urlmapping.json");
+                using var file = File.OpenRead(Path.Combine(Config.DataPath, "urlmapping.json"));
                 var result = await JsonSerializer.DeserializeAsync<List<URLMapping>>(file);
                 return result ?? new List<URLMapping>();
             }
@@ -37,7 +38,7 @@ namespace url_shortener.Models
         {
             try
             {
-                using var file = File.OpenWrite("urlmapping.json");
+                using var file = File.OpenWrite(Path.Combine(Config.DataPath, "urlmapping.json"));
                 await JsonSerializer.SerializeAsync(file, data);
                 return;
             }
