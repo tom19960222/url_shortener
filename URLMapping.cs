@@ -6,7 +6,7 @@ namespace url_shortener.Models
         public string url { get; set; }
         public string code { get; set; }
 
-        [System.Text.Json.Serialization.JsonConstructorAttribute]
+        [System.Text.Json.Serialization.JsonConstructor]
         public URLMapping(string url, string code)
         {
             this.url = url;

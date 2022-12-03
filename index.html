@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>短網址產生器</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas/4.1.0/tocas.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas/4.1.0/tocas.min.js"></script>
+</head>
+<body>
+    <div class="ts-container" style="margin-top: 100px;">
+        <div class="ts-center">
+            <div class="ts-header is-large is-heavy is-icon">
+                <div class="ts-icon is-face-smile-icon"></div>
+                短網址產生器
+            </div>
+            <div class="ts-space is-large"></div>
+            <div class="ts-segment" style="width: 500px">
+                <div class="ts-wrap is-vertical">
+                    <div class="ts-text is-label">想要縮短的網址</div>
+                    <div class="ts-input is-start-icon is-underlined is-fluid">
+                        <span class="ts-icon is-user-icon"></span>
+                        <input id="url" type="text" />
+                    </div>
+                    <button id="submit" class="ts-button is-fluid">變短！</button>
+                </div>
+            </div>
+
+            <div class="ts-space is-large"></div>
+            <div id="resultBox" class="ts-box" style="width: 500px; display: none">
+                <div class="ts-segment">
+                    你的短網址是：
+                </div>
+                <div class="ts-segment">
+                    <a id="result" href="" style="margin-right: 20px;"></a>
+                    <a id="copy" class="ts-icon is-regular is-copy-icon is-large" href="javascript:void(0);"></a>
+                </div>
+    </div>
+
+    <script>
+        document.querySelector('#submit').onclick = async () => {
+            const url = document.querySelector('#url').value;
+
+            const fetchResult = (await fetch('/', {
+                body: JSON.stringify({
+                    url
+                }),
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }));
+            const result = await fetchResult.json();
+
+            document.querySelector('#result').href = `${window.location}${result.code}`;
+            document.querySelector('#result').innerHTML = `${window.location}${result.code}`;
+            document.querySelector('#resultBox').style.display = 'block';
+            document.querySelector('#copy').onclick = async () => {
+                await navigator.clipboard.writeText(`${window.location}${result.code}`)
+            }
+        }
+    </script>
+</body>
+</html>

@@ -31,11 +31,14 @@ app.MapPost("/", async (URLMapping inputData) =>
 })
 .WithName("Create");
 
-app.MapGet("/", () =>
+app.MapGet("/", (context) =>
 {
-    return JsonSerializer.Serialize(allUrlMapping);
+    using var f = File.OpenRead("index.html");
+
+    context.Response.Headers.Add("Content-Type", "text/html");
+    return context.Response.SendFileAsync("index.html");
 })
-.WithName("List");
+.WithName("Index");
 
 app.MapGet("/{code}", (string code) =>
 {
