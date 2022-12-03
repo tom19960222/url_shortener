@@ -25,7 +25,7 @@ namespace url_shortener.Models
             {
                 using var file = File.OpenRead("urlmapping.json");
                 var result = await JsonSerializer.DeserializeAsync<List<URLMapping>>(file);
-                return result is not null ? result : new List<URLMapping>();
+                return result ?? new List<URLMapping>();
             }
             catch (Exception e) {
                 Console.WriteLine(e);

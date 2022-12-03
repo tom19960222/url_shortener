@@ -33,12 +33,22 @@ app.MapPost("/", async (URLMapping inputData) =>
 
 app.MapGet("/", (context) =>
 {
-    using var f = File.OpenRead("index.html");
-
     context.Response.Headers.Add("Content-Type", "text/html");
-    return context.Response.SendFileAsync("index.html");
+    return context.Response.SendFileAsync(Path.Combine("Pages", "index.html"));
 })
-.WithName("Index");
+.WithName("IndexPage");
+
+app.MapGet("/admin/list", (context) =>
+{
+    context.Response.Headers.Add("Content-Type", "text/html");
+    return context.Response.SendFileAsync(Path.Combine("Pages", "list.html"));
+})
+.WithName("AdminListPage");
+
+app.MapGet("/list", () =>
+{
+    return JsonSerializer.Serialize(new { data = allUrlMapping });
+}).WithName("List");
 
 app.MapGet("/{code}", (string code) =>
 {
@@ -49,3 +59,4 @@ app.MapGet("/{code}", (string code) =>
 }).WithName("RedirectWithCode");
 
 app.Run();
+

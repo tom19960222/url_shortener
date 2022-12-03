@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>短網址產生器</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas/4.1.0/tocas.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas/4.1.0/tocas.min.js"></script>
+</head>
+<body>
+    <div class="ts-container" style="margin-top: 100px;">
+        <div class="ts-center">
+            <table class="ts-table is-striped is-relaxed is-basic">
+                <thead>
+                    <tr>
+                        <th>代碼</th>
+                        <th>URL</th>
+                    </tr>
+                </thead>
+                <tbody id="urlTable">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const createTableItem = (code, url) => {
+            const tr = document.createElement('tr');
+
+            const tdCode = document.createElement('td');
+            tdCode.textContent = code;
+            
+            const tdUrl = document.createElement('td');
+            tdUrl.textContent = url;
+
+            tr.appendChild(tdCode);
+            tr.appendChild(tdUrl);
+            
+            return tr;
+        }
+
+        window.onload = async () => {
+            const fetchResult = await fetch('/list');
+            const result = await fetchResult.json();
+            const data = result.data ?? [];
+
+            const urlTable = document.querySelector('#urlTable');
+
+            data.forEach(d => urlTable.appendChild(createTableItem(d.code, d.url)));
+        };
+    </script>
+</body>
+</html>
