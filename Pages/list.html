@@ -16,6 +16,8 @@
                         <th>代碼</th>
                         <th>URL</th>
                         <th>縮網址</th>
+                        <th>建立時間</th>
+                        <th>存取次數</th>
                     </tr>
                 </thead>
                 <tbody id="urlTable">
@@ -25,7 +27,7 @@
     </div>
 
     <script>
-        const createTableItem = (code, url) => {
+        const createTableItem = (code, url, created_at, access_count) => {
             const tr = document.createElement('tr');
 
             const tdCode = document.createElement('td');
@@ -38,9 +40,17 @@
             const tdShortenedUrl = document.createElement('td');
             tdShortenedUrl.innerHTML = `<a href=${baseUrl}/${code}>${baseUrl}/${code}</a>`;
 
+            const tdCreatedAt = document.createElement('td');
+            tdCreatedAt.textContent = created_at;
+
+            const tdAccessCount = document.createElement('td');
+            tdAccessCount.textContent = access_count;
+
             tr.appendChild(tdCode);
             tr.appendChild(tdUrl);
             tr.appendChild(tdShortenedUrl);
+            tr.appendChild(tdCreatedAt);
+            tr.appendChild(tdAccessCount);
             
             return tr;
         }
@@ -52,7 +62,7 @@
 
             const urlTable = document.querySelector('#urlTable');
 
-            data.forEach(d => urlTable.appendChild(createTableItem(d.code, d.url)));
+            data.forEach(d => urlTable.appendChild(createTableItem(d.code, d.url, d.created_at, d.access_count)));
         };
     </script>
 </body>

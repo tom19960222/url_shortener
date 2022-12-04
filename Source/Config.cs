@@ -6,7 +6,7 @@
         {
             get
             {
-                return Environment.GetEnvironmentVariable("DATA_PATH") ?? string.Empty;
+                return Environment.GetEnvironmentVariable("DATA_PATH") ?? "data.db";
             }
         }
     }

@@ -1,5 +1,8 @@
 using System.Text.Json;
+using url_shortener;
 using url_shortener.Models;
+using url_shortener.Repositories;
+using url_shortener.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,15 +22,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var allUrlMapping = await URLMapping.loadURLMappingFromDisk();
+var databaseManager = new DatabaseManager();
+var urlMappingRepository = new URLMappingRepository(databaseManager);
+var urlAccessLogRepository = new URLAccessLogRepository(databaseManager);
+await urlMappingRepository.initDb();
 
-app.MapPost("/", async (URLMapping inputData) =>
+app.MapPost("/", async (URLMappingInput body) =>
 {
-    var data = new URLMapping(inputData.url);
-    allUrlMapping.Add(data);
+    var result = await urlMappingRepository.Create(body);
 
-    await URLMapping.saveURLMappingToDisk(allUrlMapping);
-    return JsonSerializer.Serialize(data);
+    return result;
 })
 .WithName("Create");
 
@@ -45,17 +49,20 @@ app.MapGet("/admin/list", (context) =>
 })
 .WithName("AdminListPage");
 
-app.MapGet("/list", () =>
+app.MapGet("/list", async () =>
 {
-    return JsonSerializer.Serialize(new { data = allUrlMapping });
+    var result = await urlMappingRepository.List(getAccessLog: true);
+    return JsonSerializer.Serialize(new { data = result });
 }).WithName("List");
 
-app.MapGet("/{code}", (string code) =>
+app.MapGet("/{code}", async (string code) =>
 {
-    var matched = allUrlMapping.Where(m => m.code == code).ToList();
-    if (matched.Count == 0) return Results.NotFound(string.Format("Code {0} has no matched URL.", code));
+    var matched = await urlMappingRepository.Get(code);
+    if (matched is null) return Results.NotFound(string.Format("Code {0} has no matched URL.", code));
 
-    return Results.Redirect(matched[0].url);
+    await urlAccessLogRepository.Create(new URLAccessLog(code: code));
+
+    return Results.Redirect(matched.url);
 }).WithName("RedirectWithCode");
 
 app.Run();
