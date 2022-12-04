@@ -9,6 +9,12 @@
 </head>
 <body>
     <div class="ts-container" style="margin-top: 100px;">
+        <div class="ts-content is-end-aligned">
+            <button id="btnGoAdminList" class="ts-button is-start-icon is-small is-short">
+                <span class="ts-icon is-list-icon"></span>
+                轉址列表
+            </button>
+        </div>
         <div class="ts-center">
             <div class="ts-header is-large is-heavy is-icon">
                 <div class="ts-icon is-face-smile-icon"></div>
@@ -60,6 +66,9 @@
             document.querySelector('#copy').onclick = async () => {
                 await navigator.clipboard.writeText(`${window.location}${result.code}`)
             }
+        }
+        document.querySelector('#btnGoAdminList').onclick = () => {
+            window.location = '/admin/list';
         }
     </script>
 </body>

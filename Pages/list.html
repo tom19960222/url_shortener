@@ -9,6 +9,12 @@
 </head>
 <body>
     <div class="ts-container" style="margin-top: 100px;">
+        <div class="ts-content">
+            <button id="btnGoIndex" class="ts-button is-start-icon">
+                <span class="ts-icon is-house-chimney-icon"></span>
+                回首頁
+            </button>
+        </div>
         <div class="ts-center">
             <table class="ts-table is-striped is-relaxed is-basic">
                 <thead>
@@ -63,7 +69,11 @@
             const urlTable = document.querySelector('#urlTable');
 
             data.forEach(d => urlTable.appendChild(createTableItem(d.code, d.url, d.created_at, d.access_count)));
-        };
+        }
+
+        document.querySelector('#btnGoIndex').onclick = () => {
+            window.location = '/';
+        }
     </script>
 </body>
 </html>
