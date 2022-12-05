@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.Components.Forms;
+using System.Data.Common;
 using url_shortener.Models;
 
 namespace url_shortener.Repositories
@@ -14,12 +15,11 @@ namespace url_shortener.Repositories
             this.db = db;
         }
 
-        public async Task<URLAccessLog> Create(URLAccessLog input)
+        public async Task<URLAccessLog> Create(URLAccessLog input, DbConnection conn)
         {
             if (string.IsNullOrWhiteSpace(input.code)) throw new Exception("Code cannot be empty!");
             DateTime accessAt = (input.accessed_at ?? DateTime.Now);
 
-            using var conn = db.GetDbConnection();
             await conn.ExecuteAsync(
                 @"INSERT INTO URLAccessLog (code, accessed_at) VALUES (@code, @accessed_at);",
                 new { code = input.code, accessed_at = accessAt.ToString("yyyy-MM-dd HH:mm:ss") }

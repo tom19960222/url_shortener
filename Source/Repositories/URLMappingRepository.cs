@@ -1,6 +1,8 @@
 ﻿using Dapper;
-using SqlKata.Compilers;
 using SqlKata.Execution;
+using System.Data;
+using System.Data.Common;
+using System.Runtime.InteropServices;
 using url_shortener.Models;
 
 namespace url_shortener.Repositories
@@ -8,30 +10,27 @@ namespace url_shortener.Repositories
     public class URLMappingRepository
     {
         private DatabaseManager db;
-        private Compiler compiler = new SqliteCompiler();
 
         public URLMappingRepository(DatabaseManager db)
         {
             this.db = db;
         }
 
-        public async Task<URLMapping> Create (URLMappingInput input)
+        public async Task<URLMapping> Create (URLMappingInput input, DbConnection conn, [Optional] IDbTransaction? transaction)
         {
             if (string.IsNullOrWhiteSpace(input.code)) throw new Exception("Code cannot be empty!");
             if (string.IsNullOrWhiteSpace(input.url)) throw new Exception("URL cannot be empty!");
 
-            using var conn = db.GetDbConnection();
-            var queryFactory = new QueryFactory(conn, compiler);
+            var queryFactory = db.GetDbQueryFactory(conn);
             var query = queryFactory.Query("URLMapping");
-            await query.InsertAsync(new { code = input.code, url = input.url, created_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
+            await query.InsertAsync(new { code = input.code, url = input.url, created_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") }, transaction);
 
             return new URLMapping(input.url, input.code, DateTime.Now);
         }
 
-        public async Task<List<URLMapping>> List (bool getAccessLog = false)
+        public async Task<List<URLMapping>> List (DbConnection conn, [Optional] IDbTransaction? transaction, bool getAccessLog = false)
         {
-            using var conn = db.GetDbConnection();
-            var queryFactory = new QueryFactory(conn, compiler);
+            var queryFactory = db.GetDbQueryFactory(conn);
             var query = queryFactory.Query("URLMapping");
             query.Select("URLMapping.code AS code")
                 .Select("url")
@@ -45,8 +44,8 @@ namespace url_shortener.Repositories
                     .LeftJoin("URLAccessLog", "URLMapping.code", "URLAccessLog.code")
                     .GroupBy("URLMapping.code");
             }
-            Console.WriteLine(compiler.Compile(query).Sql);
-            List<URLMapping> result = (await query.GetAsync())
+
+            List<URLMapping> result = (await query.GetAsync(transaction))
                 .Select(u => new URLMapping(
                     url: (string)u.url,
                     code: (string)u.code, 
@@ -58,10 +57,9 @@ namespace url_shortener.Repositories
             return result;
         }
 
-        public async Task<URLMapping?> Get(string code, bool getAccessLog = false)
+        public async Task<URLMapping?> Get(string code, DbConnection conn, [Optional] IDbTransaction? transaction, bool getAccessLog = false)
         {
-            using var conn = db.GetDbConnection();
-            var queryFactory = new QueryFactory(conn, compiler);
+            var queryFactory = db.GetDbQueryFactory(conn);
             var query = queryFactory.Query("URLMapping");
             query.Select("URLMapping.code AS code")
                 .Select("url")
@@ -77,7 +75,7 @@ namespace url_shortener.Repositories
                     .GroupBy("URLMapping.code");
             }
 
-            List<URLMapping> result = (await query.GetAsync())
+            List<URLMapping> result = (await query.GetAsync(transaction))
                 .Select(u => new URLMapping(
                     url: (string)u.url,
                     code: (string)u.code,
@@ -89,10 +87,9 @@ namespace url_shortener.Repositories
             return result.Count > 0 ? result[0] : null;
         }
              
-        public async Task initDb()
+        public async Task initDb(DbConnection conn)
         {
             if (this.db.isDatabaseInitialized()) return;
-            using var conn = db.GetDbConnection();
             await conn.ExecuteAsync(@"
                 CREATE TABLE URLMapping (
                     code VARCHAR(255),

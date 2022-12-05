@@ -1,5 +1,8 @@
 ﻿using System.Data.Common;
 using System.Data.SQLite;
+using System.Runtime.InteropServices;
+using SqlKata.Compilers;
+using SqlKata.Execution;
 
 namespace url_shortener
 {
@@ -16,13 +19,25 @@ namespace url_shortener
         {
             get
             {
-                return String.Format("data source={0}", this.databasePath);
+                return string.Format("data source={0};Cache=Shared", this.databasePath);
             }
         }
 
-        public DbConnection GetDbConnection()
+        public async Task<DbConnection> GetDbConnection()
         {
-            return new SQLiteConnection(sqliteDBConnectionString);
+            var conn = new SQLiteConnection(sqliteDBConnectionString);
+            await conn.OpenAsync();
+            return conn;
+        }
+
+        public Compiler GetDbQueryCompiler()
+        {
+            return new SqliteCompiler();
+        }
+
+        public QueryFactory GetDbQueryFactory(DbConnection conn, [Optional] Compiler compiler)
+        {
+            return new QueryFactory(conn, compiler ?? GetDbQueryCompiler());
         }
 
         public bool isDatabaseInitialized()

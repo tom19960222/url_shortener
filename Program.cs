@@ -2,7 +2,6 @@ using System.Text.Json;
 using url_shortener;
 using url_shortener.Models;
 using url_shortener.Repositories;
-using url_shortener.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,13 +24,32 @@ app.UseHttpsRedirection();
 var databaseManager = new DatabaseManager();
 var urlMappingRepository = new URLMappingRepository(databaseManager);
 var urlAccessLogRepository = new URLAccessLogRepository(databaseManager);
-await urlMappingRepository.initDb();
+
+using (var conn = await databaseManager.GetDbConnection())
+{
+    await urlMappingRepository.initDb(conn);
+}
+
 
 app.MapPost("/", async (URLMappingInput body) =>
 {
-    var result = await urlMappingRepository.Create(body);
+    using var conn = await databaseManager.GetDbConnection();
+    using (var transaction = await conn.BeginTransactionAsync())
+    {
+        try
+        {
+            var result = await urlMappingRepository.Create(body, conn: conn, transaction: transaction);
+            await transaction.CommitAsync();
 
-    return result;
+            return Results.Created($"/{result.code}", result);
+        }
+        catch (Exception e)
+        {
+            transaction.Rollback();
+            Console.WriteLine(e.ToString());
+            return Results.Problem(e.ToString());
+        }
+    }
 })
 .WithName("Create");
 
@@ -51,16 +69,18 @@ app.MapGet("/admin/list", (context) =>
 
 app.MapGet("/list", async () =>
 {
-    var result = await urlMappingRepository.List(getAccessLog: true);
+    using var conn = await databaseManager.GetDbConnection();
+    var result = await urlMappingRepository.List(conn, getAccessLog: true);
     return JsonSerializer.Serialize(new { data = result });
 }).WithName("List");
 
 app.MapGet("/{code}", async (string code) =>
 {
-    var matched = await urlMappingRepository.Get(code);
+    using var conn = await databaseManager.GetDbConnection();
+    var matched = await urlMappingRepository.Get(code, conn);
     if (matched is null) return Results.NotFound(string.Format("Code {0} has no matched URL.", code));
 
-    await urlAccessLogRepository.Create(new URLAccessLog(code: code));
+    await urlAccessLogRepository.Create(new URLAccessLog(code: code), conn);
 
     return Results.Redirect(matched.url);
 }).WithName("RedirectWithCode");
