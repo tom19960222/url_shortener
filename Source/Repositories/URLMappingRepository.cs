@@ -1,5 +1,6 @@
 ﻿using Dapper;
-using DapperQueryBuilder;
+using SqlKata.Compilers;
+using SqlKata.Execution;
 using url_shortener.Models;
 
 namespace url_shortener.Repositories
@@ -7,6 +8,7 @@ namespace url_shortener.Repositories
     public class URLMappingRepository
     {
         private DatabaseManager db;
+        private Compiler compiler = new SqliteCompiler();
 
         public URLMappingRepository(DatabaseManager db)
         {
@@ -19,10 +21,9 @@ namespace url_shortener.Repositories
             if (string.IsNullOrWhiteSpace(input.url)) throw new Exception("URL cannot be empty!");
 
             using var conn = db.GetDbConnection();
-            await conn.ExecuteAsync(
-                @"INSERT INTO URLMapping (code, url, created_at) VALUES (@code, @url, @created_at);",
-                new { code = input.code, url = input.url, created_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") }
-            );
+            var queryFactory = new QueryFactory(conn, compiler);
+            var query = queryFactory.Query("URLMapping");
+            await query.InsertAsync(new { code = input.code, url = input.url, created_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") });
 
             return new URLMapping(input.url, input.code, DateTime.Now);
         }
@@ -30,25 +31,22 @@ namespace url_shortener.Repositories
         public async Task<List<URLMapping>> List (bool getAccessLog = false)
         {
             using var conn = db.GetDbConnection();
-            var sql = new FluentQueryBuilder(conn);
-            sql
-                .Select($"URLMapping.code AS code")
-                .Select($"url")
-                .Select($"created_at")
-                .From($"URLMapping")
-                .OrderBy($"URLMapping.created_at DESC"); 
+            var queryFactory = new QueryFactory(conn, compiler);
+            var query = queryFactory.Query("URLMapping");
+            query.Select("URLMapping.code AS code")
+                .Select("url")
+                .Select("created_at")
+                .OrderByDesc("URLMapping.created_at");
 
             if (getAccessLog)
             {
-                sql
-                    .Select($"COUNT(URLAccessLog.code) as access_count")
-                    .From($"LEFT JOIN URLAccessLog ON URLMapping.code = URLAccessLog.code")
-                    .Where($"1 = 1")
-                    .GroupBy($"URLMapping.code");
+                query
+                    .SelectRaw("COUNT(URLAccessLog.code) AS access_count")
+                    .LeftJoin("URLAccessLog", "URLMapping.code", "URLAccessLog.code")
+                    .GroupBy("URLMapping.code");
             }
-
-            Console.WriteLine($"Sql: {sql.Sql}");
-            List<URLMapping> result = (await sql.QueryAsync())
+            Console.WriteLine(compiler.Compile(query).Sql);
+            List<URLMapping> result = (await query.GetAsync())
                 .Select(u => new URLMapping(
                     url: (string)u.url,
                     code: (string)u.code, 
@@ -63,24 +61,22 @@ namespace url_shortener.Repositories
         public async Task<URLMapping?> Get(string code, bool getAccessLog = false)
         {
             using var conn = db.GetDbConnection();
-            var sql = new FluentQueryBuilder(conn);
-            sql
-                .Select($"URLMapping.code AS code")
-                .Select($"url")
-                .Select($"created_at")
-                .From($"URLMapping")
-                .Where($"URLMapping.code = {code}");
+            var queryFactory = new QueryFactory(conn, compiler);
+            var query = queryFactory.Query("URLMapping");
+            query.Select("URLMapping.code AS code")
+                .Select("url")
+                .Select("created_at")
+                .OrderByDesc("URLMapping.created_at");
 
-            if(getAccessLog)
+            if (getAccessLog)
             {
-                sql
-                    .Select($"COUNT(URLAccessLog.code) as access_count")
-                    .From($"INNER JOIN URLAccessLog ON URLMapping.code = URLAccessLog.code")
-                    .Where($"1 = 1")
-                    .GroupBy($"URLMapping.code");
+                query
+                    .Select("COUNT(URLAccessLog.code) as access_count")
+                    .LeftJoin("URLAccessLog", "URLMapping.code", "URLAccessLog.code")
+                    .GroupBy("URLMapping.code");
             }
 
-            List<URLMapping> result = (await sql.QueryAsync())
+            List<URLMapping> result = (await query.GetAsync())
                 .Select(u => new URLMapping(
                     url: (string)u.url,
                     code: (string)u.code,
