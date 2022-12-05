@@ -66,6 +66,7 @@ namespace url_shortener.Repositories
             query.Select("URLMapping.code AS code")
                 .Select("url")
                 .Select("created_at")
+                .Where("URLMapping.code", "=", code)
                 .OrderByDesc("URLMapping.created_at");
 
             if (getAccessLog)
